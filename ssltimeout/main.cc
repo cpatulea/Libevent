@@ -4,6 +4,7 @@
 #include <event2/http.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <assert.h>
 
 #include <string>
 #include <vector>
