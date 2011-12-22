@@ -10,11 +10,8 @@
 #include <vector>
 #include <iostream>
 
-const std::string crt_asn1_str = "XXX";
-const std::string intermediate2_crt_asn1_str = "XXX";
-const std::string intermediate1_crt_asn1_str = "XXX";
-const std::string root_crt_asn1_str = "XXX";
-const std::string key_asn1_str = "XXX";
+const char crt_file[] = "/home/catalinp/server.pem";
+const char key_file[] = "/home/catalinp/server.key";
 
 void NonChunkHandler(struct evhttp_request *req, void */* arg */) {
   struct evbuffer *buf = evbuffer_new();
@@ -81,36 +78,16 @@ int main(int /* argc */, char */* argv */[]) {
   OpenSSL_add_all_algorithms();
   sctx_ = SSL_CTX_new(SSLv23_server_method());
   assert(sctx_ != NULL);
-  if (SSL_CTX_use_certificate_ASN1(sctx_, crt_asn1_str.length(),
-                                   reinterpret_cast<const unsigned char*> (
-                                       crt_asn1_str.c_str())) != 1) {
-    std::cerr << "SSL_CTX_use_certificate_ASN1: "
+  if (SSL_CTX_use_certificate_file(sctx_, crt_file, SSL_FILETYPE_PEM) != 1) {
+    std::cerr << "SSL_CTX_use_certificate_file: "
               << ERR_reason_error_string(ERR_get_error());
     exit(1);
   }
-  std::vector<std::string> chain;
-  chain.push_back(intermediate2_crt_asn1_str);
-  chain.push_back(intermediate1_crt_asn1_str);
-  chain.push_back(root_crt_asn1_str);
-  for (std::vector<std::string>::const_iterator i = chain.begin();
-       i != chain.end(); ++i) {
-    const unsigned char *crt = reinterpret_cast<const unsigned char*> (
-        i->c_str());
-    X509 *x509 = d2i_X509(NULL, &crt, i->length());
-    assert(x509 != NULL);
-    if (SSL_CTX_add_extra_chain_cert(sctx_, x509) != 1) {
-      std::cerr << "SSL_CTX_add_extra_chain_cert: "
-                << ERR_reason_error_string(ERR_get_error());
-      exit(2);
-    }
-    break;
-  }
-  if (SSL_CTX_use_PrivateKey_ASN1(
-          EVP_PKEY_RSA,
+  if (SSL_CTX_use_PrivateKey_file(
           sctx_,
-          reinterpret_cast<const unsigned char*> (key_asn1_str.c_str()),
-          key_asn1_str.length()) != 1) {
-    std::cerr << "SSL_CTX_use_PrivateKey_ASN1: "
+          key_file,
+          SSL_FILETYPE_PEM) != 1) {
+    std::cerr << "SSL_CTX_use_PrivateKey_file: "
               << ERR_reason_error_string(ERR_get_error());
     exit(3);
   }
