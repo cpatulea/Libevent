@@ -6,5 +6,8 @@ all: ssltimeout
 clean:
 	rm -f ssltimeout main.o
 
-ssltimeout: main.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+make-libevent:
+	$(MAKE) -C ..
+
+ssltimeout: main.o make-libevent
+	$(CXX) $(CXXFLAGS) -o $@ main.o $(LDFLAGS)

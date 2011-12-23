@@ -374,10 +374,17 @@ evhttp_add_event(struct event *ev, int timeout, int default_timeout)
  * the bufferevent into writing mode.
  */
 static void
+evhttp_send_done(struct evhttp_connection *evcon, void *arg);
+static void
 evhttp_write_buffer(struct evhttp_connection *evcon,
     void (*cb)(struct evhttp_connection *, void *), void *arg)
 {
-	event_debug(("%s: preparing to write buffer\n", __func__));
+	event_debug(("%s: preparing to write buffer", __func__));
+	if (cb == evhttp_send_done) {
+		event_debug(("%s: cb=evhttp_send_done", __func__));
+	} else {
+		event_debug(("%s: cb=???", __func__));
+	}
 
 	/* Set call back */
 	evcon->cb = cb;
@@ -2454,6 +2461,9 @@ evhttp_send_done(struct evhttp_connection *evcon, void *arg)
 {
 	int need_close;
 	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
+
+	event_debug(("%s: enter", __func__));
+
 	TAILQ_REMOVE(&evcon->requests, req, next);
 
 	need_close =
@@ -2613,6 +2623,10 @@ evhttp_send_reply_end(struct evhttp_request *req)
 
 	if (req->chunked) {
 		evbuffer_add(output, "0\r\n\r\n", 5);
+
+		event_debug(("===============================\n"
+		             "send_reply_end\n"
+		             "===============================\n"));
 		evhttp_write_buffer(req->evcon, evhttp_send_done, NULL);
 		req->chunked = 0;
 	} else if (evbuffer_get_length(output) == 0) {

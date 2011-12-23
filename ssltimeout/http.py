@@ -2,17 +2,10 @@
 
 import socket
 import ssl
+import sys
 
-debug = False
 
-configs = [
-  { 'host': 'www.google.com', 'port': 80, 'url': '/', 'ssl': False, },
-  { 'host': 'www.google.com', 'port': 443, 'url': '/', 'ssl': True, },
-  { 'host': '127.0.0.1', 'port': 8888, 'url': '/no_chunks', 'ssl': False, },
-  { 'host': '127.0.0.1', 'port': 8889, 'url': '/no_chunks', 'ssl': True, },
-  { 'host': '127.0.0.1', 'port': 8888, 'url': '/', 'ssl': False, },
-  { 'host': '127.0.0.1', 'port': 8889, 'url': '/', 'ssl': True, },
-]
+debug = True
 
 def read_until(s, until):
   rtn = ''
@@ -78,7 +71,16 @@ Host: %(host)s:%(port)s\r
   if debug: print 'REQ DONE'
   return (chunked, True)
 
-socket.setdefaulttimeout(10)
+#socket.setdefaulttimeout(10)
+if sys.argv[1] == 'h':
+  configs = [
+    { 'host': '127.0.0.1', 'port': 8888, 'url': '/', 'ssl': False, },
+  ]
+else:
+  configs = [
+    { 'host': '127.0.0.1', 'port': 8889, 'url': '/', 'ssl': True, },
+ ]
+
 for config in configs:
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   if config['ssl']:
@@ -86,8 +88,14 @@ for config in configs:
   s.connect((config['host'], config['port']))
   for i in range(2):
     (chunked, success) = process_req(s, config)
+
     if not success:
       break
+
+    if i != 1:
+      print 'press enter to send next request'
+      sys.stdin.readline()
+
   s.close()
   config['chunked'] = chunked
   print 'host=%(host)s ssl=%(ssl)s chunked=%(chunked)s: ' % config,

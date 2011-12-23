@@ -639,6 +639,7 @@ do_write(struct bufferevent_openssl *bev_ssl, int atmost)
 	else
 		atmost = _bufferevent_get_write_max(&bev_ssl->bev);
 
+	event_debug(("%s: output length = %d", __func__, evbuffer_get_length(output)));
 	n = evbuffer_peek(output, atmost, NULL, space, 8);
 	if (n < 0)
 		return -1;
@@ -655,6 +656,7 @@ do_write(struct bufferevent_openssl *bev_ssl, int atmost)
 		if (space[i].iov_len == 0)
 			continue;
 
+		event_debug(("%s: writing iov length = %d", __func__, space[i].iov_len));
 		r = SSL_write(bev_ssl->ssl, space[i].iov_base,
 		    space[i].iov_len);
 		if (r > 0) {
@@ -692,13 +694,18 @@ do_write(struct bufferevent_openssl *bev_ssl, int atmost)
 			break;
 		}
 	}
+	event_debug(("%s: n_written = %d", __func__, n_written));
 	if (n_written) {
 		evbuffer_drain(output, n_written);
 		if (bev_ssl->underlying)
 			BEV_RESET_GENERIC_WRITE_TIMEOUT(bev);
 
-		if (evbuffer_get_length(output) <= bev->wm_write.low)
+		if (evbuffer_get_length(output) <= bev->wm_write.low) {
+			event_debug(("%s: calling writecb: yes", __func__, n_written));
 			_bufferevent_run_writecb(bev);
+		} else {
+			event_debug(("%s: calling writecb: no", __func__, n_written));
+		}
 	}
 	return blocked ? 0 : 1;
 }
@@ -814,6 +821,7 @@ consider_writing(struct bufferevent_openssl *bev_ssl)
 		target = bev_ssl->underlying->output;
 		wm = &bev_ssl->underlying->wm_write;
 	}
+	event_debug(("%s: before do_write, output length = %d", __func__, evbuffer_get_length(output)));
 	while ((bev_ssl->bev.bev.enabled & EV_WRITE) &&
 	    (! bev_ssl->bev.write_suspended) &&
 	    evbuffer_get_length(output) &&
@@ -828,6 +836,7 @@ consider_writing(struct bufferevent_openssl *bev_ssl)
 			break;
 	}
 
+	event_debug(("%s: after do_write, output length = %d", __func__, evbuffer_get_length(output)));
 	if (!bev_ssl->underlying) {
 		if (evbuffer_get_length(output) == 0) {
 			event_del(&bev_ssl->bev.bev.ev_write);

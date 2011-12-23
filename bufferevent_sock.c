@@ -257,6 +257,7 @@ bufferevent_writecb(evutil_socket_t fd, short event, void *arg)
 	if (bufev_p->write_suspended)
 		goto done;
 
+	event_debug(("%s: before write_buckets, output length = %d", __func__, evbuffer_get_length(bufev->output)));
 	if (evbuffer_get_length(bufev->output)) {
 		evbuffer_unfreeze(bufev->output, 1);
 		res = evbuffer_write_atmost(bufev->output, fd, atmost);
@@ -279,6 +280,7 @@ bufferevent_writecb(evutil_socket_t fd, short event, void *arg)
 		_bufferevent_decrement_write_buckets(bufev_p, res);
 	}
 
+	event_debug(("%s: after write_buckets, output length = %d", __func__, evbuffer_get_length(bufev->output)));
 	if (evbuffer_get_length(bufev->output) == 0) {
 		event_del(&bufev->ev_write);
 	}
@@ -289,7 +291,10 @@ bufferevent_writecb(evutil_socket_t fd, short event, void *arg)
 	 */
 	if ((res || !connected) &&
 	    evbuffer_get_length(bufev->output) <= bufev->wm_write.low) {
+		event_debug(("%s: after write_buckets, running writecb: yes", __func__));
 		_bufferevent_run_writecb(bufev);
+	} else {
+		event_debug(("%s: after write_buckets, running writecb: no", __func__));
 	}
 
 	goto done;
